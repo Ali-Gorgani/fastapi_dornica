@@ -60,9 +60,11 @@ def auth_token(create_test_user, client):
 
 
 @pytest.fixture(scope="function")
-def client_with_auth(auth_token, client):
-    client.headers = {
-        **client.headers,
-        "Authorization": f"Bearer {auth_token}"
-    }
-    return client
+def client_with_auth(client, auth_token):
+    # Clone the original test client to avoid modifying the headers globally
+    auth_client = TestClient(app)
+    # Ensure the dependency override is maintained
+    auth_client.app.dependency_overrides = client.app.dependency_overrides
+    # Set the Authorization header on the new client instance
+    auth_client.headers["Authorization"] = f"Bearer {auth_token}"
+    return auth_client
