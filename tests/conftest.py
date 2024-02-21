@@ -1,5 +1,3 @@
-import uuid
-
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy import create_engine
@@ -7,77 +5,62 @@ from sqlalchemy.orm import sessionmaker
 
 from app.database import get_db, Base
 from app.main import app
-from app.models import User, Listing
 
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:110963@localhost:5432/fastapi_test"
+SQLALCHEMY_DATABASE_URL = "postgresql://postgres:110963@localhost:5432/fastapi"
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base.metadata.create_all(bind=engine)  # Create schema for testing
 
-
-def override_get_db():
+@pytest.fixture(scope="module")
+def test_db():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-client = TestClient(app)
-
-
-def reset_test_db():
-    # Establish a new session
-    db = TestingSessionLocal()
-    try:
-        # Delete data from specific tables
-        db.query(User).delete()
-        db.query(Listing).delete()
-        # Add other tables as needed
-
-        # Commit changes
-        db.commit()
-    except Exception as e:
-        print(f"Failed to reset test database: {e}")
-        db.rollback()
-    finally:
-        db.close()
+    yield db
+    db.close()
 
 
 @pytest.fixture(scope="module")
-def create_test_user():
-    # # Optional: Reset database state before creating a new test user
-    # reset_test_db()
+def client(test_db):
+    def override_get_db():
+        try:
+            yield test_db
+        finally:
+            test_db.close()
 
-    # Generate a unique username and email for each test run
-    unique_suffix = str(uuid.uuid4())[:8]  # Generate a random UUID and use the first 8 characters
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as client:
+        yield client
+
+
+@pytest.fixture(scope="module")
+def create_test_user(client):
     user_data = {
-        "userName": f"testuser_{unique_suffix}",
-        "email": f"test_{unique_suffix}@example.com",
+        "userName": "testuser",
+        "email": "test@example.com",
         "password": "ABcd12!@"
     }
     response = client.post("/users/", json=user_data)
-    assert response.status_code == 201, response.text
+    assert response.status_code == 201
     return response.json()  # Returns the created user data
 
 
+# Adjust the auth_token fixture to depend on the create_test_user fixture
+# This ensures that create_test_user runs first and creates the user
 @pytest.fixture(scope="module")
-def auth_token(create_test_user):
+def auth_token(create_test_user, client):
     login_data = {
         "username": "test@example.com",
         "password": "ABcd12!@"
     }
     response = client.post("/token", data=login_data)
     assert response.status_code == 200
-    token = response.json()["access_token"]
+    token = response.json().get("access_token")
     return token
 
 
 @pytest.fixture(scope="function")
-def client_with_auth(auth_token):
+def client_with_auth(auth_token, client):
     client.headers = {
         **client.headers,
         "Authorization": f"Bearer {auth_token}"

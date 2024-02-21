@@ -16,7 +16,8 @@ router = APIRouter(
 @router.post('/token', response_model=schemas.Token)
 def login(request: Request, user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # rate limit
-    client_ip = request.client.host + ":" + str(request.client.port)
+    client_ip = request.client.host if request.client else "127.0.0.1" + ":" + str(
+        request.client.port if request.client else 80)  # if statements put for pytest purposes
     rate_limit(client_ip, limit=5, period=60)  # Allow 5 requests per minute per IP
 
     user = db.query(models.User).filter(models.User.email == user_credentials.username).first()
