@@ -8,7 +8,6 @@ from app.config import settings
 API_KEY = settings.weather_api_key
 BASE_URL = 'http://api.weatherapi.com/v1'
 
-# Assuming the endpoint for future weather forecast allows specifying a range or getting extended forecasts
 forecast_days = 3  # free plan only gives 3 days
 location = 'Sari'  # Specify the location
 
