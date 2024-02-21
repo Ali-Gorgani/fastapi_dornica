@@ -32,11 +32,3 @@ class Listing(Base):
     createdAt = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
     updatedAt = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'), onupdate=text('now()'))
     owner = relationship("User")
-
-
-class BlacklistToken(Base):
-    __tablename__ = "blacklist_tokens"
-
-    id = Column(Integer, primary_key=True, nullable=False)
-    token = Column(String, nullable=False, unique=True)
-    email = Column(String, nullable=False)

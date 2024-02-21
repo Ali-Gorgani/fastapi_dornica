@@ -26,10 +26,11 @@ ALLOWED_CLIENTS = ["127.0.0.1", "172.23.0.1"]
 
 @app.middleware("http")
 async def allowed_client_ips(request: Request, call_next):
-    # Assuming allowed_clients is stored as a comma-separated string
     allowed_clients = set(ALLOWED_CLIENTS)
 
-    client_ip = request.client.host
+    # Handle cases where request.client is None, e.g., during tests
+    client_ip = request.client.host if request.client else "127.0.0.1"
+
     if client_ip not in allowed_clients:
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
