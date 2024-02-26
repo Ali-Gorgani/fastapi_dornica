@@ -48,6 +48,25 @@ def login(request: Request, user_credentials: OAuth2PasswordRequestForm = Depend
 @router.post("/logout", status_code=status.HTTP_200_OK)
 def logout(token: str = Depends(oauth2.oauth2_scheme)):
     # Example token expiration, adjust according to your token management logic
+    print(token)
+    if token == "null":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No token provided",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Assuming redis_client.keys returns a list of bytes
+    blacklisted_keys = redis_client.keys("blacklist:*")
+    blacklisted_tokens = [key.split("blacklist:")[1] for key in blacklisted_keys]  # Decoding byte strings
+
+    if token in blacklisted_tokens:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     token_expiration = datetime.now(timezone.utc) + timedelta(hours=1)
     ttl = int((token_expiration - datetime.now(timezone.utc)).total_seconds())
 

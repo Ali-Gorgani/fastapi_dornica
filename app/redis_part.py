@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 import redis
+
 from app.config import settings
 
 # Create a Redis client instance
