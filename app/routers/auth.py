@@ -47,14 +47,13 @@ def login(request: Request, user_credentials: OAuth2PasswordRequestForm = Depend
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
 def logout(token: str = Depends(oauth2.oauth2_scheme)):
-    # Example token expiration, adjust according to your token management logic
 
-        if token == "null":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No token provided",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    if token == "null":
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="No token provided",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
     # Assuming redis_client.keys returns a list of bytes
     blacklisted_keys = redis_client.keys("blacklist:*")
